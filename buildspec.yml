@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.10
+  pre_build:
+    commands:
+      - echo Logging into Amazon ECR...
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 376129876153.dkr.ecr.ap-south-1.amazonaws.com
+  build:
+    commands:
+      - echo Building Docker image...
+      - docker build -t its2130-assignment .
+      - docker tag its2130-assignment:latest 376129876153.dkr.ecr.ap-south-1.amazonaws.com/its2130-assignment:latest
+  post_build:
+    commands:
+      - echo Pushing Docker image to ECR...
+      - docker push 376129876153.dkr.ecr.ap-south-1.amazonaws.com/its2130-assignment:latest
+      - echo Writing imagedefinitions.json...
+      - printf '[{"name":"its2130-container","imageUri":"%s"}]' 376129876153.dkr.ecr.ap-south-1.amazonaws.com/its2130-assignment:latest > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
