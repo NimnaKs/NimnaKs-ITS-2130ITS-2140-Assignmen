@@ -12,6 +12,9 @@ logreg_model = joblib.load("logreg_model.pkl")
 
 def prepare_input(data):
     """Format input for prediction"""
+
+    print("data:", data)
+
     return pd.DataFrame([{
         "age": int(data["age"]),
         "job": data["job"],
