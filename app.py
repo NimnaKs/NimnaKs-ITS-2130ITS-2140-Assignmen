@@ -1,45 +1,88 @@
-from flask import Flask, render_template, request
-import joblib
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import pandas as pd
+import joblib
 
 app = Flask(__name__)
+CORS(app)
 
-# Load model and preprocessor
-model = joblib.load("model.pkl")
-preprocessor = joblib.load("preprocessor.pkl")
+# Load models
+svm_model = joblib.load("svm_model.pkl")
+logreg_model = joblib.load("logreg_model.pkl")
+
+def prepare_input(data):
+    """Format input for prediction"""
+    return pd.DataFrame([{
+        "age": int(data["age"]),
+        "job": data["job"],
+        "marital": data["marital"],
+        "education": data["education"],
+        "default": data["default"],
+        "housing": data["housing"],
+        "loan": data["loan"],
+        "contact": "cellular",
+        "month": "may",
+        "day_of_week": "mon",
+        "campaign": 1,
+        "pdays": 0,
+        "previous": 0,
+        "poutcome": "nonexistent",
+        "emp.var.rate": 1.1,
+        "cons.price.idx": 93.994,
+        "cons.conf.idx": -36.1,
+        "euribor3m": 4.857,
+        "nr.employed": 5191.0
+    }])
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    # Get form data
-    data = {
-        'age': int(request.form['age']),
-        'job': request.form['job'],
-        'marital': request.form['marital'],
-        'education': request.form['education'],
-        'default': request.form['default'],
-        'housing': request.form['housing'],
-        'loan': request.form['loan'],
-    }
+@app.route('/svm')
+def svm_page():
+    return render_template('svm.html')
 
-    # Convert to DataFrame
-    input_df = pd.DataFrame([data])
+@app.route('/logreg')
+def logreg_page():
+    return render_template('logreg.html')
 
-    # Add dummy values for other required features
-    for col in ['contact', 'month', 'day_of_week', 'campaign', 'pdays', 'previous', 'poutcome',
-                'emp.var.rate', 'cons.price.idx', 'cons.conf.idx', 'euribor3m', 'nr.employed']:
-        input_df[col] = 0  # or some default value
+@app.route('/predict/svm', methods=['POST'])
+def predict_svm():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Missing JSON input"}), 400
 
-    # Preprocess input
-    processed_input = preprocessor.transform(input_df)
+        input_df = prepare_input(data)
+        prediction = svm_model.predict(input_df)[0]
+        proba = svm_model.predict_proba(input_df)[0][1]
 
-    # Predict
-    result = model.predict(processed_input)[0]
+        return jsonify({
+            "model": "SVM",
+            "prediction": "Yes" if prediction == 1 else "No",
+            "confidence": round(proba, 3)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    return render_template('result.html', prediction='YES' if result == 1 else 'NO')
+@app.route('/predict/logreg', methods=['POST'])
+def predict_logreg():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Missing JSON input"}), 400
+
+        input_df = prepare_input(data)
+        prediction = logreg_model.predict(input_df)[0]
+        proba = logreg_model.predict_proba(input_df)[0][1]
+
+        return jsonify({
+            "model": "Logistic Regression",
+            "prediction": "Yes" if prediction == 1 else "No",
+            "confidence": round(proba, 3)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
