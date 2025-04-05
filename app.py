@@ -19,19 +19,7 @@ def prepare_input(data):
         "education": data["education"],
         "default": data["default"],
         "housing": data["housing"],
-        "loan": data["loan"],
-        "contact": "cellular",
-        "month": "may",
-        "day_of_week": "mon",
-        "campaign": 1,
-        "pdays": 0,
-        "previous": 0,
-        "poutcome": "nonexistent",
-        "emp.var.rate": 1.1,
-        "cons.price.idx": 93.994,
-        "cons.conf.idx": -36.1,
-        "euribor3m": 4.857,
-        "nr.employed": 5191.0
+        "loan": data["loan"]
     }])
 
 @app.route('/')
